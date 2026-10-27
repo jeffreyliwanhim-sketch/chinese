@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-HK" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文言文實詞積累與溫習系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Serif TC for classical feel) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['"Noto Serif TC"', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        amber: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Card flip effect for review */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 bg-slate-50 antialiased">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-amber-900 text-amber-50 shadow-md sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-book-bookmark text-2xl text-amber-300"></i>
+                <h1 class="text-xl sm:text-2xl font-serif font-bold tracking-wide">文言文實詞庫</h1>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <!-- Flashcard Mode Button -->
+                <button id="btn-review-mode" class="flex items-center space-x-1 sm:space-x-2 bg-amber-800 hover:bg-amber-700 text-amber-100 px-3 py-1.5 rounded-lg text-sm font-medium transition shadow-sm border border-amber-700">
+                    <i class="fa-solid fa-brain text-amber-300"></i>
+                    <span class="hidden sm:inline">智能溫習</span>
+                    <span id="review-badge" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold ml-1 hidden">0</span>
+                </button>
+
+                <!-- Add New Word Button (Main Request) -->
+                <button id="btn-open-add-modal" class="flex items-center space-x-1 sm:space-x-2 bg-amber-500 hover:bg-amber-400 text-amber-950 font-semibold px-3.5 py-1.5 rounded-lg text-sm transition shadow-sm">
+                    <i class="fa-solid fa-plus text-base"></i>
+                    <span>新增實詞</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6">
+
+        <!-- Review Reminder Banner (Conditional) -->
+        <div id="reminder-banner" class="hidden bg-amber-100 border-l-4 border-amber-600 p-4 rounded-r-lg shadow-sm flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i class="fa-regular fa-clock text-amber-700 text-xl"></i>
+                <div>
+                    <h4 class="font-semibold text-amber-900 text-sm">溫習提醒</h4>
+                    <p class="text-xs text-amber-800">今天有 <span id="due-count" class="font-bold underline">0</span> 個實詞需要溫習，快來鞏固記憶吧！</p>
+                </div>
+            </div>
+            <button id="btn-start-banner-review" class="bg-amber-700 hover:bg-amber-800 text-white text-xs px-3 py-1.5 rounded-md font-medium transition">
+                立即溫習
+            </button>
+        </div>
+
+        <!-- Controls Section: Search & A-Z Letter Filter -->
+        <section class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-4">
+            <!-- Search Bar & Statistics -->
+            <div class="flex flex-col sm:flex-row gap-3 justify-between items-center">
+                <div class="relative w-full sm:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="search-input" placeholder="搜尋字詞、拼音或翻譯..." 
+                        class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition">
+                    <button id="btn-clear-search" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center space-x-4 text-xs sm:text-sm text-slate-500 w-full sm:w-auto justify-between sm:justify-end">
+                    <span>總共收錄：<strong id="total-count" class="text-amber-800 font-semibold">0</strong> 個字詞</span>
+                    <button id="btn-reset-data" class="text-slate-400 hover:text-red-500 text-xs flex items-center space-x-1 transition" title="重置為初始數據">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>恢復預設庫</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alphabet Quick Filter -->
+            <div class="border-t border-slate-100 pt-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">拼音首字母索引</span>
+                    <span id="selected-letter-label" class="text-xs text-amber-700 font-medium">全部 (ALL)</span>
+                </div>
+                <div id="alphabet-container" class="flex flex-wrap gap-1.5 custom-scrollbar max-h-24 overflow-y-auto">
+                    <!-- Dynamic Alphabet Buttons generated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Words List Display -->
+        <section class="flex-1">
+            <div id="words-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Cards dynamically populated here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center">
+                <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center text-2xl mb-3">
+                    <i class="fa-solid fa-book-open"></i>
+                </div>
+                <h3 class="text-slate-700 font-semibold text-base">未找到相關實詞</h3>
+                <p class="text-slate-400 text-sm mt-1 max-w-sm">嘗試搜尋其他關鍵字，或點擊右上角「新增實詞」來補充你的字庫。</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal: Add / Edit Word -->
+    <div id="word-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-amber-900 px-6 py-4 flex items-center justify-between text-amber-50">
+                <h3 id="modal-title" class="font-serif font-bold text-lg">新增文言文實詞</h3>
+                <button id="btn-close-modal" class="text-amber-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="word-form" class="p-6 overflow-y-auto space-y-4 custom-scrollbar flex-1">
+                <input type="hidden" id="form-word-id">
+
+                <div class="grid grid-cols-3 gap-3">
+                    <!-- Pinyin Letter -->
+                    <div class="col-span-1">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">首字母 <span class="text-red-500">*</span></label>
+                        <input type="text" id="input-letter" maxlength="1" required placeholder="例如: D"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                    <!-- Word -->
+                    <div class="col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">文言字詞 <span class="text-red-500">*</span></label>
+                        <input type="text" id="input-word" required placeholder="例如: 道"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-serif font-semibold text-amber-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Meanings Dynamic Container -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-xs font-semibold text-slate-600">白話文翻譯 / 釋義 <span class="text-red-500">*</span></label>
+                        <button type="button" id="btn-add-meaning" class="text-xs text-amber-700 hover:text-amber-900 font-semibold flex items-center space-x-1">
+                            <i class="fa-solid fa-plus-circle"></i>
+                            <span>增加釋義條目</span>
+                        </button>
+                    </div>
+
+                    <div id="meanings-list" class="space-y-2">
+                        <!-- Dynamic Meaning Input Row -->
+                    </div>
+                </div>
+
+                <!-- Notes / Extra Info -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">備註 / 出處 / 語法用法 (選填)</label>
+                    <textarea id="input-notes" rows="2" placeholder="例如：范宣、通假字、使動用法等..."
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+                </div>
+            </form>
+
+            <div class="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex justify-end space-x-3">
+                <button type="button" id="btn-cancel-modal" class="px-4 py-2 text-slate-600 hover:text-slate-800 text-sm font-medium rounded-lg transition">
+                    取消
+                </button>
+                <button type="submit" form="word-form" class="px-5 py-2 bg-amber-800 hover:bg-amber-900 text-white text-sm font-medium rounded-lg shadow-sm transition">
+                    儲存實詞
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Flashcard Review Mode -->
+    <div id="review-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="w-full max-w-md flex flex-col items-center">
+            
+            <!-- Review Header -->
+            <div class="w-full flex justify-between items-center text-white mb-4 px-2">
+                <div class="text-sm font-medium text-amber-300">
+                    <i class="fa-solid fa-brain mr-1"></i> 實詞抽考卡片
+                </div>
+                <div class="text-xs text-slate-300">
+                    剩餘 <span id="review-progress" class="font-bold text-white">0</span> 個
+                </div>
+                <button id="btn-close-review" class="text-slate-300 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Card Box (Flip Card) -->
+            <div id="flashcard" class="w-full h-80 perspective-1000 cursor-pointer">
+                <div id="flashcard-inner" class="relative w-full h-full duration-500 transform-style-3d shadow-2xl rounded-2xl">
+                    
+                    <!-- Card Front (Word) -->
+                    <div class="absolute inset-0 w-full h-full bg-white rounded-2xl border-2 border-amber-200 p-6 flex flex-col justify-between items-center backface-hidden">
+                        <div class="text-xs text-amber-800 font-semibold tracking-wider uppercase bg-amber-50 px-3 py-1 rounded-full">
+                            首字母: <span id="card-letter"></span>
+                        </div>
+                        <div class="text-center">
+                            <h2 id="card-word" class="text-5xl font-serif font-bold text-slate-800 mb-2"></h2>
+                            <p class="text-xs text-slate-400 mt-4">( 點擊卡片翻面看翻譯 )</p>
+                        </div>
+                        <div class="text-xs text-slate-400">
+                            <i class="fa-regular fa-lightbulb mr-1"></i>嘗試在腦海中回想其釋義與詞性
+                        </div>
+                    </div>
+
+                    <!-- Card Back (Translation) -->
+                    <div class="absolute inset-0 w-full h-full bg-amber-900 text-amber-50 rounded-2xl p-6 flex flex-col justify-between rotate-y-180 backface-hidden overflow-y-auto">
+                        <div class="text-xs text-amber-300 font-semibold border-b border-amber-800/80 pb-2 flex justify-between">
+                            <span id="card-back-word" class="font-serif font-bold text-base text-amber-100"></span>
+                            <span>白話釋義</span>
+                        </div>
+                        <div id="card-meanings" class="my-auto space-y-2 py-2">
+                            <!-- Dynamic meanings inserted here -->
+                        </div>
+                        <div id="card-notes-container" class="text-xs bg-amber-950/50 p-2.5 rounded border border-amber-800/50 text-amber-200/90">
+                            <strong>備註：</strong> <span id="card-notes"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review Feedback Action Buttons -->
+            <div class="w-full mt-6 grid grid-cols-2 gap-3">
+                <button id="btn-review-again" class="py-3 px-4 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl shadow-md transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>不熟悉 (待會再練)</span>
+                </button>
+                <button id="btn-review-easy" class="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-md transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>已掌握 (已熟記)</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Default Initial Data based on User Request
+        const INITIAL_WORDS = [
+            { id: '1', letter: 'C', word: '尝', meanings: [{ pos: '', text: '曾经' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '2', letter: 'D', word: '道', meanings: [
+                { pos: 'v', text: '走 / 经过' },
+                { pos: 'n', text: '道路' },
+                { pos: 'n', text: '道理' },
+                { pos: 'v', text: '学 / 仿效' }
+            ], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '3', letter: 'D', word: '谛', meanings: [{ pos: '', text: '仔细' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '4', letter: 'E', word: '俄而', meanings: [{ pos: '', text: '一会儿' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '5', letter: 'F', word: '复', meanings: [{ pos: '', text: '再' }], notes: '范宣', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '6', letter: 'F', word: '法', meanings: [{ pos: '', text: '效仿、效法' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '7', letter: 'G', word: '固', meanings: [{ pos: '', text: '本来' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '8', letter: 'H', word: '好', meanings: [{ pos: '', text: '喜好' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '9', letter: 'H', word: '或', meanings: [{ pos: '', text: '有的人' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '10', letter: 'H', word: '宦', meanings: [{ pos: '', text: '做官' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '11', letter: 'J', word: '即', meanings: [{ pos: '', text: '已经' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '12', letter: 'J', word: '际', meanings: [{ pos: '', text: '边界 / 之间（中间）' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '13', letter: 'J', word: '具', meanings: [
+                { pos: '', text: '具备' },
+                { pos: '', text: '准备' }
+            ], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '14', letter: 'J', word: '遽', meanings: [{ pos: '', text: '急忙、匆忙' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '15', letter: 'J', word: '就', meanings: [
+                { pos: 'n', text: '成就' },
+                { pos: 'v', text: '完成' },
+                { pos: 'v', text: '接受' }
+            ], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '16', letter: 'J', word: '觉', meanings: [
+                { pos: '白', text: '醒' },
+                { pos: '文', text: '睡' },
+                { pos: '文', text: '发觉' }
+            ], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '17', letter: 'L', word: '栗', meanings: [{ pos: '', text: '慄、抖' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '18', letter: 'R', word: '若', meanings: [
+                { pos: '', text: '像' },
+                { pos: '', text: '比不上' },
+                { pos: '', text: '你 / 你们' }
+            ], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '19', letter: 'S', word: '善', meanings: [
+                { pos: '', text: '善良 (20%-30%)' },
+                { pos: '', text: '好 (70%-80%)' }
+            ], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '20', letter: 'S', word: '师', meanings: [
+                { pos: '', text: '老师' },
+                { pos: 'v', text: '拜师 / 求 / 学' }
+            ], notes: '明 / 使动用法', lastReviewed: Date.now(), nextReview: Date.now() },
+            
+            { id: '21', letter: 'S', word: '索', meanings: [
+                { pos: 'v', text: '搜索' },
+                { pos: 'n', text: '绳' },
+                { pos: 'v', text: '绑' },
+                { pos: 'v', text: '捉' }
+            ], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '22', letter: 'S', word: '遂', meanings: [
+                { pos: 'v', text: '成功' },
+                { pos: 'v', text: '如愿' },
+                { pos: '', text: '于是' },
+                { pos: '', text: '终于 / 是' },
+                { pos: '', text: '最终' }
+            ], notes: '范宣', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '23', letter: 'S', word: '使', meanings: [{ pos: '', text: '命令、派遣、差遣' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '24', letter: 'S', word: '生', meanings: [{ pos: '', text: '生存、活着' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '25', letter: 'S', word: '……者', meanings: [
+                { pos: '', text: '的人' },
+                { pos: '', text: '的地方' },
+                { pos: '', text: '的道理' }
+            ], notes: 'S - 主语(是否主语)？人/事/道理', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '26', letter: 'T', word: '啼', meanings: [{ pos: '', text: '啼哭' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '27', letter: 'W', word: '误', meanings: [{ pos: '', text: '不小心' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '28', letter: 'X', word: '徐', meanings: [{ pos: '', text: '慢慢' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '29', letter: 'X', word: '学', meanings: [
+                { pos: 'v', text: '学习' },
+                { pos: 'n', text: '知识 / 学问' }
+            ], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '30', letter: 'Y', word: '佯', meanings: [{ pos: '', text: '假装' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '31', letter: 'Y', word: '谒', meanings: [{ pos: '', text: '拜见' }], notes: '高位', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '32', letter: 'Y', word: '以', meanings: [
+                { pos: '', text: '因为' },
+                { pos: 'v', text: '用' },
+                { pos: '', text: '以为' },
+                { pos: '', text: '觉得' }
+            ], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '33', letter: 'Y', word: '异', meanings: [{ pos: '', text: '奇怪 / 惊讶、不同' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '34', letter: 'Y', word: '遗', meanings: [{ pos: '', text: '赠送' }], notes: '范宣', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '35', letter: 'Y', word: '于', meanings: [{ pos: 'v', text: '给予' }], notes: '通假', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '36', letter: 'Y', word: '邪', meanings: [{ pos: '', text: '吗？' }], notes: '', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '37', letter: 'Z', word: '载', meanings: [{ pos: '', text: '乘坐' }], notes: '范宣', lastReviewed: Date.now(), nextReview: Date.now() },
+
+            { id: '38', letter: 'Z', word: '卒', meanings: [
+                { pos: '', text: '士兵' },
+                { pos: 'v', text: '死' },
+                { pos: '', text: '最后 / 终' }
+            ], notes: '全部是否主语', lastReviewed: Date.now(), nextReview: Date.now() }
+        ];
+
+        // State Management
+        let words = [];
+        let selectedLetter = 'ALL';
+        let searchQuery = '';
+        let reviewQueue = [];
+        let currentReviewIndex = 0;
+
+        // DOM Elements
+        const wordsGrid = document.getElementById('words-grid');
+        const emptyState = document.getElementById('empty-state');
+        const alphabetContainer = document.getElementById('alphabet-container');
+        const searchInput = document.getElementById('search-input');
+        const btnClearSearch = document.getElementById('btn-clear-search');
+        const totalCountEl = document.getElementById('total-count');
+        const selectedLetterLabel = document.getElementById('selected-letter-label');
+        
+        // Modal Elements
+        const wordModal = document.getElementById('word-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const wordForm = document.getElementById('word-form');
+        const meaningsList = document.getElementById('meanings-list');
+        const inputLetter = document.getElementById('input-letter');
+        const inputWord = document.getElementById('input-word');
+        const inputNotes = document.getElementById('input-notes');
+        const formWordId = document.getElementById('form-word-id');
+
+        // Flashcard Review Elements
+        const reviewModal = document.getElementById('review-modal');
+        const reviewBadge = document.getElementById('review-badge');
+        const reminderBanner = document.getElementById('reminder-banner');
+        const dueCountEl = document.getElementById('due-count');
+        const flashcard = document.getElementById('flashcard');
+        const flashcardInner = document.getElementById('flashcard-inner');
+        const cardLetter = document.getElementById('card-letter');
+        const cardWord = document.getElementById('card-word');
+        const cardBackWord = document.getElementById('card-back-word');
+        const cardMeanings = document.getElementById('card-meanings');
+        const cardNotesContainer = document.getElementById('card-notes-container');
+        const cardNotes = document.getElementById('card-notes');
+        const reviewProgress = document.getElementById('review-progress');
+
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            loadWords();
+            renderAlphabetFilter();
+            renderWords();
+            checkDueReviews();
+            setupEventListeners();
+        });
+
+        // Load words from LocalStorage or Initial Setup
+        function loadWords() {
+            const saved = localStorage.getItem('classical_chinese_words');
+            if (saved) {
+                try {
+                    words = JSON.parse(saved);
+                } catch (e) {
+                    words = [...INITIAL_WORDS];
+                }
+            } else {
+                words = [...INITIAL_WORDS];
+                saveWords();
+            }
+        }
+
+        function saveWords() {
+            localStorage.setItem('classical_chinese_words', JSON.stringify(words));
+            renderWords();
+            checkDueReviews();
+        }
+
+        // Render Alphabet Filters A-Z
+        function renderAlphabetFilter() {
+            const letters = ['ALL', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
+            alphabetContainer.innerHTML = letters.map(let => {
+                const isActive = selectedLetter === let;
+                return `
+                    <button data-letter="${let}" class="alphabet-btn text-xs px-2.5 py-1 rounded-md font-semibold transition ${
+                        isActive 
+                        ? 'bg-amber-800 text-amber-50 shadow-sm' 
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    }">
+                        ${let}
+                    </button>
+                `;
+            }).join('');
+
+            // Add click events to letter buttons
+            document.querySelectorAll('.alphabet-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    selectedLetter = e.currentTarget.dataset.letter;
+                    selectedLetterLabel.textContent = selectedLetter === 'ALL' ? '全部 (ALL)' : `字母 ${selectedLetter}`;
+                    renderAlphabetFilter();
+                    renderWords();
+                });
+            });
+        }
+
+        // Filter and Render Word Cards Grid
+        function renderWords() {
+            let filtered = words.filter(item => {
+                const matchesLetter = selectedLetter === 'ALL' || item.letter.toUpperCase() === selectedLetter;
+                
+                const q = searchQuery.toLowerCase().trim();
+                const matchesSearch = !q || 
+                    item.word.toLowerCase().includes(q) ||
+                    item.letter.toLowerCase().includes(q) ||
+                    (item.notes && item.notes.toLowerCase().includes(q)) ||
+                    item.meanings.some(m => m.text.toLowerCase().includes(q) || (m.pos && m.pos.toLowerCase().includes(q)));
+
+                return matchesLetter && matchesSearch;
+            });
+
+            // Sort by letter then by word
+            filtered.sort((a, b) => a.letter.localeCompare(b.letter) || a.word.localeCompare(b.word));
+
+            totalCountEl.textContent = words.length;
+
+            if (filtered.length === 0) {
+                wordsGrid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+
+                wordsGrid.innerHTML = filtered.map(item => `
+                    <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 hover:shadow-md transition flex flex-col justify-between group">
+                        <div>
+                            <!-- Header: Letter Badge & Action Buttons -->
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="bg-amber-100 text-amber-900 font-bold text-xs px-2.5 py-0.5 rounded-full tracking-wider">
+                                    ${item.letter}
+                                </span>
+                                <div class="flex space-x-1 opacity-80 group-hover:opacity-100 transition">
+                                    <button onclick="openEditModal('${item.id}')" class="text-slate-400 hover:text-amber-700 p-1 text-xs" title="編輯">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="deleteWord('${item.id}')" class="text-slate-400 hover:text-red-600 p-1 text-xs" title="刪除">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Word Title -->
+                            <h3 class="text-2xl font-serif font-bold text-amber-950 mb-3 border-b border-slate-100 pb-2">
+                                ${item.word}
+                            </h3>
+
+                            <!-- Meanings List -->
+                            <ul class="space-y-1.5 mb-3 text-sm">
+                                ${item.meanings.map(m => `
+                                    <li class="flex items-start text-slate-700">
+                                        ${m.pos ? `<span class="inline-block bg-slate-100 text-slate-600 text-[11px] font-semibold px-1.5 py-0.5 rounded mr-2 mt-0.5 shrink-0">${m.pos}</span>` : '<span class="text-amber-600 mr-2">•</span>'}
+                                        <span class="leading-relaxed">${m.text}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+
+                        <!-- Notes Footer (If Any) -->
+                        ${item.notes ? `
+                            <div class="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-500 bg-slate-50 p-2 rounded">
+                                <i class="fa-solid fa-info-circle text-amber-600 mr-1"></i> ${item.notes}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            // Search Input
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                btnClearSearch.classList.toggle('hidden', !searchQuery);
+                renderWords();
+            });
+
+            btnClearSearch.addEventListener('click', () => {
+                searchInput.value = '';
+                searchQuery = '';
+                btnClearSearch.classList.add('hidden');
+                renderWords();
+            });
+
+            // Open Add Modal
+            document.getElementById('btn-open-add-modal').addEventListener('click', () => openAddModal());
+            document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+            document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+
+            // Dynamic Meaning Rows
+            document.getElementById('btn-add-meaning').addEventListener('click', () => addMeaningRow());
+
+            // Form Submit
+            wordForm.addEventListener('submit', handleFormSubmit);
+
+            // Reset Data Button
+            document.getElementById('btn-reset-data').addEventListener('click', () => {
+                if (confirm('確定要恢復為預設的實詞庫嗎？這將重置所有手動變更。')) {
+                    words = [...INITIAL_WORDS];
+                    saveWords();
+                }
+            });
+
+            // Review Modal Trigger
+            document.getElementById('btn-review-mode').addEventListener('click', startReview);
+            document.getElementById('btn-start-banner-review').addEventListener('click', startReview);
+            document.getElementById('btn-close-review').addEventListener('click', closeReviewModal);
+
+            // Flashcard Flip
+            flashcard.addEventListener('click', () => {
+                flashcardInner.classList.toggle('rotate-y-180');
+            });
+
+            // Review Response Buttons
+            document.getElementById('btn-review-again').addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleReviewAnswer(false);
+            });
+            document.getElementById('btn-review-easy').addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleReviewAnswer(true);
+            });
+        }
+
+        // Add Meaning Row inside Modal Form
+        function addMeaningRow(pos = '', text = '') {
+            const row = document.createElement('div');
+            row.className = 'meaning-row flex items-center space-x-2';
+            row.innerHTML = `
+                <input type="text" placeholder="詞性 (如 v/n/通假)" value="${pos}" class="input-pos w-24 px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none">
+                <input type="text" placeholder="白話翻譯 (如: 走 / 經過)" value="${text}" required class="input-text flex-1 px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none">
+                <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-red-500 p-1">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </button>
+            `;
+            meaningsList.appendChild(row);
+        }
+
+        // Modal Handlers
+        function openAddModal() {
+            modalTitle.textContent = '新增文言文實詞';
+            formWordId.value = '';
+            inputLetter.value = '';
+            inputWord.value = '';
+            inputNotes.value = '';
+            meaningsList.innerHTML = '';
+            addMeaningRow(); // Default 1 row
+            wordModal.classList.remove('hidden');
+            inputLetter.focus();
+        }
+
+        window.openEditModal = function(id) {
+            const item = words.find(w => w.id === id);
+            if (!item) return;
+
+            modalTitle.textContent = '編輯文言文實詞';
+            formWordId.value = item.id;
+            inputLetter.value = item.letter;
+            inputWord.value = item.word;
+            inputNotes.value = item.notes || '';
+            meaningsList.innerHTML = '';
+
+            item.meanings.forEach(m => addMeaningRow(m.pos || '', m.text || ''));
+
+            wordModal.classList.remove('hidden');
+        };
+
+        function closeModal() {
+            wordModal.classList.add('hidden');
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const letter = inputLetter.value.trim().toUpperCase();
+            const word = inputWord.value.trim();
+            const notes = inputNotes.value.trim();
+            const id = formWordId.value;
+
+            // Collect Meanings
+            const meaningRows = meaningsList.querySelectorAll('.meaning-row');
+            const meanings = [];
+            meaningRows.forEach(row => {
+                const pos = row.querySelector('.input-pos').value.trim();
+                const text = row.querySelector('.input-text').value.trim();
+                if (text) {
+                    meanings.push({ pos, text });
+                }
+            });
+
+            if (meanings.length === 0) {
+                alert('請至少填寫一條白話文翻譯釋義！');
+                return;
+            }
+
+            if (id) {
+                // Edit Existing Word
+                const index = words.findIndex(w => w.id === id);
+                if (index !== -1) {
+                    words[index] = { ...words[index], letter, word, meanings, notes };
+                }
+            } else {
+                // Add New Word
+                const newWord = {
+                    id: Date.now().toString(),
+                    letter,
+                    word,
+                    meanings,
+                    notes,
+                    lastReviewed: Date.now(),
+                    nextReview: Date.now() // ready to review anytime
+                };
+                words.unshift(newWord);
+            }
+
+            saveWords();
+            closeModal();
+        }
+
+        // Delete Word
+        window.deleteWord = function(id) {
+            if (confirm('確定要刪除這個實詞嗎？')) {
+                words = words.filter(w => w.id !== id);
+                saveWords();
+            }
+        };
+
+        // --- Memory & Review Reminder System ---
+
+        function checkDueReviews() {
+            const now = Date.now();
+            const dueWords = words.filter(w => !w.nextReview || w.nextReview <= now);
+            
+            if (dueWords.length > 0) {
+                reviewBadge.textContent = dueWords.length;
+                reviewBadge.classList.remove('hidden');
+                dueCountEl.textContent = dueWords.length;
+                reminderBanner.classList.remove('hidden');
+            } else {
+                reviewBadge.classList.add('hidden');
+                reminderBanner.classList.add('hidden');
+            }
+        }
+
+        function startReview() {
+            const now = Date.now();
+            // Prioritize words that are due, or pick 10 random words if none due
+            let due = words.filter(w => !w.nextReview || w.nextReview <= now);
+            if (due.length === 0) {
+                due = [...words].sort(() => 0.5 - Math.random()).slice(0, 10);
+            }
+
+            if (due.length === 0) {
+                alert('目前沒有詞語可以溫習，請先新增實詞！');
+                return;
+            }
+
+            reviewQueue = [...due];
+            currentReviewIndex = 0;
+            showCard();
+            reviewModal.classList.remove('hidden');
+        }
+
+        function showCard() {
+            if (currentReviewIndex >= reviewQueue.length) {
+                alert('🎉 太棒了！您已完成本次所有實詞溫習！');
+                closeReviewModal();
+                checkDueReviews();
+                return;
+            }
+
+            // Ensure card is front-facing
+            flashcardInner.classList.remove('rotate-y-180');
+
+            const item = reviewQueue[currentReviewIndex];
+            reviewProgress.textContent = `${reviewQueue.length - currentReviewIndex}`;
+
+            cardLetter.textContent = item.letter;
+            cardWord.textContent = item.word;
+            cardBackWord.textContent = item.word;
+
+            // Populate meanings on back
+            cardMeanings.innerHTML = item.meanings.map(m => `
+                <div class="bg-amber-950/40 p-2.5 rounded border border-amber-800/40 text-sm">
+                    ${m.pos ? `<span class="bg-amber-700 text-amber-100 text-xs px-1.5 py-0.5 rounded font-mono mr-2">${m.pos}</span>` : ''}
+                    <span class="text-amber-50 font-medium">${m.text}</span>
+                </div>
+            `).join('');
+
+            // Notes
+            if (item.notes) {
+                cardNotes.textContent = item.notes;
+                cardNotesContainer.classList.remove('hidden');
+            } else {
+                cardNotesContainer.classList.add('hidden');
+            }
+        }
+
+        function handleReviewAnswer(isEasy) {
+            const item = reviewQueue[currentReviewIndex];
+            const originalIndex = words.findIndex(w => w.id === item.id);
+
+            if (originalIndex !== -1) {
+                const now = Date.now();
+                // Ebbinghaus intervals: Easy = 2 days later, Hard/Again = 10 minutes
+                const interval = isEasy ? (2 * 24 * 60 * 60 * 1000) : (10 * 60 * 1000);
+                
+                words[originalIndex].lastReviewed = now;
+                words[originalIndex].nextReview = now + interval;
+                saveWords();
+            }
+
+            if (!isEasy) {
+                // Push back to the end of review queue if failed
+                reviewQueue.push(item);
+            }
+
+            currentReviewIndex++;
+            showCard();
+        }
+
+        function closeReviewModal() {
+            reviewModal.classList.add('hidden');
+            flashcardInner.classList.remove('rotate-y-180');
+        }
+    </script>
+</body>
+</html>
